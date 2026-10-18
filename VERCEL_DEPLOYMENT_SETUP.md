@@ -1,273 +1,34 @@
-# EARNIZI - Vercel Deployment & Setup Guide
+# EARNIZI deployment (Next.js + Supabase)
 
-## 📁 Project Structure
-```
-earnizi-app/
-├── dist/                  ← Built files (deploy this to Vercel)
-├── src/
-│   ├── App.tsx           ← Main application (React + Supabase)
-│   ├── i18n.ts           ← Translations (EN/FR)
-│   ├── lib/
-│   │   └── supabase.ts   ← Supabase client
-│   ├── components/
-│   │   └── icons.tsx     ← All icon components
-│   ├── index.css         ← Tailwind CSS
-│   └── main.tsx          ← Entry point
-├── public/
-│   └── manifest.json     ← PWA manifest
-├── supabase/
-│   └── schema.sql        ← Complete SQL schema
-├── index.html
-├── vercel.json           ← Vercel routing config
-└── VERCEL_DEPLOYMENT_SETUP.md
-```
+## Vercel
 
----
+1. Import this repository into Vercel and keep the framework set to **Next.js**.
+2. Configure the environment variables from `.env.example` in the Vercel project settings.
+3. Deploy with the default Next.js build (`npm run build`).
 
-## 🚀 DEPLOY TO VERCEL (3 Methods)
+`vercel.json` is configured for Next.js. Do not add a static output directory; API routes and Supabase auth require the Next server runtime.
 
-### Method 1: Vercel Dashboard (Easiest)
+## Supabase SQL
 
-1. Go to https://vercel.com/new
-2. Import your Git repository OR upload the `dist/` folder
-3. **Framework Preset**: Select "Other"
-4. **Root Directory**: Leave as `.` (or select the folder containing the `dist` folder)
-5. **Build Command**: Leave empty (already built)
-6. **Output Directory**: Set to `dist`
-7. Click **Deploy**
+- New Supabase project: run `supabase/schema.sql` once.
+- Existing project from the old Earnizi schema: back up first, then run `supabase/migrations/20261018_earnizi_video_store.sql`.
 
-Your app will be live at: `https://your-project.vercel.app`
+The migration adds the EARNIZI catalog/order model and secure video-only reward flow, and removes game/task reward configs. Review the migration in staging before applying it to production.
 
-To use your custom domain `earn.sellizi.store`:
-- Go to **Settings → Domains**
-- Add domain: `earn.sellizi.store`
-- Update your DNS:
-  - **Type**: A
-  - **Name**: @
-  - **Value**: `76.76.21.21` (Vercel IP)
-  - **Type**: CNAME
-  - **Name**: www
-  - **Value**: cname.vercel-dns.com
+## Environment variables
 
----
+Required for account, wallet, catalog, and video campaign data:
 
-### Method 2: Vercel CLI
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 
-```bash
-# Install Vercel CLI
-npm install -g vercel
+Server-only integrations:
 
-# Login
-vercel login
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `PAYMENT_PROVIDER=paylinky`
+- `PAYMENT_API_URL` (after the PayLinky adapter is implemented)
+- `PAYMENT_API_KEY` (server-only)
+- `PAYMENT_WEBHOOK_SECRET` (server-only)
+- `NEXT_PUBLIC_SITE_URL`
 
-# Deploy
-vercel --prod
-
-# Set custom domain
-vercel domains add earn.sellizi.store
-```
-
----
-
-### Method 3: Drag & Drop
-
-1. Zip the `dist/` folder (rename to `earnizi.zip`)
-2. Go to https://vercel.com/dashboard
-3. Click **Add New → Project**
-4. Drag & drop your ZIP file
-5. Click **Deploy**
-
----
-
-## 🗄️ SUPABASE SETUP
-
-### Step 1: Create Supabase Project
-1. Go to https://supabase.com/dashboard
-2. Create new project
-3. Copy your `SUPABASE_URL` and `SUPABASE_ANON_KEY`
-
-### Step 2: Run SQL Schema
-Go to **SQL Editor** and run the complete schema from `supabase/schema.sql`:
-
-```sql
--- Full SQL available in: supabase/schema.sql
--- This creates all tables: profiles, products, transactions, admin_configs, pending_payments, etc.
--- Includes trigger for honestansah@gmail.com auto-admin
-```
-
-### Step 3: Enable Google OAuth
-Go to **Authentication → Providers → Google**:
-1. Enable Google provider
-2. Add your Google OAuth credentials
-3. Set redirect URL: `https://your-project.vercel.app`
-
----
-
-## ⚙️ INITIAL SETUP AFTER DEPLOYMENT
-
-### Step 1: Configure Environment
-In Vercel Dashboard → Settings → Environment Variables:
-```
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_ANON_KEY=your-anon-key
-```
-
-### Step 2: First Login as Admin
-- **Email**: honestansah@gmail.com
-- **Password**: Any (auto-set as admin via SQL trigger)
-
----
-
-## 🔧 ADMIN PANEL CONFIGURATION
-
-### 1. Configure Rewards API
-Navigate: **Admin → API Keys**
-
-**Fill in:**
-- **API Endpoint**: `https://api.rapido.com/v1` (or your rewards platform)
-- **API Key**: Your rewards platform key
-- Toggle **Rewards Enabled**: ON/OFF
-
-### 2. Configure Payment References (for AI)
-Navigate: **Admin → AI Settings**
-
-**Add reference images for each method:**
-- MTN Mobile Money
-- Orange Money
-- PayPal
-- Bank Transfer
-
-Upload reference screenshots for AI to compare against user payment proofs.
-
-### 3. Create Products
-Navigate: **Admin → Products**
-
-All products are FREE. Add:
-- Title, Description
-- Category (Finance, Marketing, etc.)
-- Type (ebook, file, course, etc.)
-- Optional link
-
----
-
-## 📱 PWA INSTALLATION
-
-The app is installable as a PWA:
-1. Open in Chrome on mobile/desktop
-2. Click **Settings → Install App** button
-3. Or use browser's install prompt
-
-**Manifest includes:**
-- 192x192 icon
-- 512x512 icon
-- Standalone display mode
-- Theme color: #f59e0b (amber)
-
----
-
-## 👤 PROFILE EDITING
-
-Navigate: **Settings → Edit Profile**
-
-Fields:
-- Full Name
-- Username  
-- Phone Number
-- Country (auto-updates currency)
-
-All changes persist to Supabase `profiles` table.
-
----
-
-## 💰 PAYMENT SYSTEM
-
-### For Users:
-1. **Sign up** with email, username, phone, country
-2. **Login** with email/password OR Google
-3. **Pay 2300 Fr** (local currency equivalent)
-4. **Get approved** (manual or AI auto-approval)
-5. **Access unlocked**: Affiliate, Products, Rewards
-
-### For Admin:
-- View pending payments in **Admin → Approvals**
-- AI auto-checks proofs against references
-- Confidence > 85% → Auto-approve
-- Confidence > 50% → Flag for review
-- Below 50% → Manual fallback
-
----
-
-## 🌍 COUNTRIES SUPPORTED (33 Total)
-
-### African Countries:
-Nigeria, Ghana, Kenya, South Africa, Egypt, Morocco, Ivory Coast, Senegal, Cameroon, Togo, Benin, Mali, Burkina Faso, Niger, Guinea, Rwanda, Tanzania, Uganda, Zambia, Zimbabwe, Ethiopia, Algeria, Tunisia, Angola, Mozambique, DR Congo, Gabon, Congo
-
-### External:
-United States, United Kingdom, Canada
-
-Each auto-converts 2300 Fr to local currency.
-
----
-
-## 📊 AFFILIATE COMMISSIONS
-
-- **Level 1 (Direct)**: 1000 Fr
-- **Level 2**: 500 Fr
-- **Level 3**: 300 Fr
-
-Track: Clicks, Registered, Active users
-
----
-
-## 🎮 REWARDS SYSTEM
-
-### Video Rewards
-- Admin configures API endpoint
-- Users watch videos to earn
-- No file uploads - API-driven
-
-### Game Rewards
-- Admin configures API endpoint
-- Users play games to earn
-- No file uploads - API-driven
-
----
-
-## 🛠️ TECH STACK
-
-- **Frontend**: React 19 + TypeScript + Vite 7
-- **Backend**: Supabase (PostgreSQL)
-- **Auth**: Email/Password + Google OAuth
-- **Styling**: Tailwind CSS v4
-- **PWA**: Installable with manifest
-- **Deploy**: Vercel
-
----
-
-## 📞 SUPPORT
-
-**EARNIZI Support:**
-- Email: honestansah@gmail.com
-- Domain: https://earn.sellizi.store
-
----
-
-## ✅ QUICK START CHECKLIST
-
-- [ ] Deploy `dist/` to Vercel
-- [ ] Add custom domain `earn.sellizi.store`
-- [ ] Run `supabase/schema.sql` in Supabase
-- [ ] Configure Supabase env vars in Vercel
-- [ ] Enable Google OAuth in Supabase
-- [ ] Login as admin (honestansah@gmail.com)
-- [ ] Set Rewards API endpoint
-- [ ] Add payment reference images
-- [ ] Create first products
-- [ ] Enable rewards (default: ON)
-- [ ] Share app link!
-
----
-
-## 🎉 YOU'RE READY!
-
-Deploy the `dist/` folder to Vercel and EARNIZI will be live at **https://earn.sellizi.store**
+PayLinky is the selected provider. Its supplied documentation URL (`https://paylinky.vercel.app/llms-full.txt`) could not be accessed from this environment, so the provider API and signature contract remain unverified and checkout is still disabled. Never expose a service-role key or payment secret in a `NEXT_PUBLIC_*` variable; do not enable checkout until the documented checkout and signed-webhook flow is implemented and tested.
